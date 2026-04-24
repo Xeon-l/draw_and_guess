@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python generate_sketches.py)",
+      "Bash(python main.py)",
+      "Bash(gh auth *)"
+    ]
+  }
+}
