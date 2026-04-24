@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python generate_sketches.py)",
       "Bash(python main.py)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(python -c \"from game.sketch_fetcher import get_sketch_path; path, src = get_sketch_path\\('猫'\\); print\\(f'path={path}, source={src}'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)"
     ]
   }
 }

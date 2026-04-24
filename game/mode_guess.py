@@ -5,8 +5,7 @@ import random
 from PIL import Image, ImageTk
 from game.timer import CountdownTimer
 from game.words import get_hint, ALL_WORDS
-
-SKETCH_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "sketches")
+from game.sketch_fetcher import get_sketch_path, get_all_sketchable_words, prefetch_words
 
 BG = "#F0F4F8"
 ACCENT = "#4A90D9"
@@ -82,9 +81,7 @@ class GuessMode(tk.Frame):
         self.timer = CountdownTimer(self.winfo_toplevel(), self.timer_label, on_timeout=self._on_timeout)
 
     def _get_available_sketches(self):
-        if not os.path.exists(SKETCH_DIR):
-            return []
-        return [f[:-4] for f in os.listdir(SKETCH_DIR) if f.endswith(".png")]
+        return get_all_sketchable_words()
 
     def _new_round(self):
         self.next_btn.pack_forget()
@@ -95,10 +92,8 @@ class GuessMode(tk.Frame):
 
         available = self._get_available_sketches()
         if not available:
-            self.sketch_canvas.delete("all")
-            self.sketch_canvas.create_text(210, 150, text="没有可用的简笔画!\n请在 assets/sketches/ 添加图片",
-                                           font=("Microsoft YaHei", 14), fill="gray")
-            return
+            # No local/cache sketches — pick any word and try to fetch
+            available = [e["word"] for e in ALL_WORDS]
 
         word = random.choice(available)
         self.current_word = word
@@ -108,13 +103,30 @@ class GuessMode(tk.Frame):
                 self.current_word_entry = entry
                 break
 
-        path = os.path.join(SKETCH_DIR, f"{word}.png")
+        # Show loading
+        self.sketch_canvas.delete("all")
+        self.sketch_canvas.create_text(210, 150, text="加载中...",
+                                       font=("Microsoft YaHei", 16), fill="gray")
+        self.update()
+
+        path, source = get_sketch_path(word)
+        if not path:
+            self.sketch_canvas.delete("all")
+            self.sketch_canvas.create_text(210, 150, text=f"无法加载「{word}」的简笔画",
+                                           font=("Microsoft YaHei", 14), fill="red")
+            return
+
         try:
             img = Image.open(path)
             img = img.resize((420, 300), Image.LANCZOS)
             self.sketch_photo = ImageTk.PhotoImage(img)
             self.sketch_canvas.delete("all")
             self.sketch_canvas.create_image(0, 0, anchor="nw", image=self.sketch_photo)
+            # Show source indicator
+            source_text = {"local": "本地", "cache": "缓存", "online": "在线"}.get(source, "")
+            if source_text:
+                self.sketch_canvas.create_text(410, 290, text=source_text,
+                                               font=("Microsoft YaHei", 8), fill="gray", anchor="se")
         except Exception as e:
             self.sketch_canvas.delete("all")
             self.sketch_canvas.create_text(210, 150, text=f"加载失败: {e}",

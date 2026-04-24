@@ -6,3 +6,4 @@ build/
 *.spec
 .eggs/
 *.egg-info/
+assets/cache/
